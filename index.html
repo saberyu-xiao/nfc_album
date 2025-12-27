@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC互动相册</title>
+    <!-- 引入Swiper轮播库的CSS文件 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .hint {
+            color: #666;
+            margin-top: 25px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Swiper轮播样式 */
+        .mySwiper {
+            width: 100%;
+            height: 60vh;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .swiper-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* 长按动画关键帧定义 */
+        @keyframes pressAnimation {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(0.92); opacity: 0.85; box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.6); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 应用长按动画的类 */
+        .longpress-active {
+            animation: pressAnimation 1s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- 网页主容器 -->
+    <div class="container">
+        <h1>滑动浏览，长按关注</h1>
+        <!-- Swiper轮播容器 (结构已修正) -->
+        <div class="swiper mySwiper">
+            <div class="swiper-wrapper">
+                <!-- 图片将由JavaScript动态插入到这里 -->
+            </div>
+        </div>
+        <p class="hint">↑ 上下滑动切换图片，长按任一图片可跳转到对应抖音主页</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+        // ==================== 动态加载图片部分 ====================
+        // 1. 定义图片列表数组（你只需要更新这个数组！）
+        const imageList = [
+            'images/pic_001.jpg',
+            'images/pic_002.jpg',
+            'images/pic_003.jpg',
+            // 未来要添加新图片，只需在这里新写一行，例如：
+            // 'images/pic_004.jpg',
+        ];
+
+        // 定义所有图片共同的抖音ID (请替换成你的抖音号，例如：MS4wLjABAAAA...)
+        const commonDouyinId = 'MS4wLjABAAAA3o_WcAiDDMp6IMz-4SVUdtk742Vc7b5zp92zqtwvVu8UsM21dKIz_1l5Y_sDLVvH';
+
+        // 2. 获取轮播包裹容器
+        const swiperWrapper = document.querySelector('.swiper-wrapper');
+
+        // 3. 遍历图片列表，为每张图片创建轮播幻灯片(swiper-slide)
+        imageList.forEach((imgSrc) => {
+            // 创建slide的div
+            const slideDiv = document.createElement('div');
+            slideDiv.className = 'swiper-slide';
+            
+            // 创建img元素
+            const imgElement = document.createElement('img');
+            imgElement.src = imgSrc;
+            imgElement.alt = '展示图片';
+            imgElement.setAttribute('data-dyid', commonDouyinId); // 设置抖音ID
+            
+            slideDiv.appendChild(imgElement);
+            swiperWrapper.appendChild(slideDiv);
+        });
+
+        // ==================== 初始化Swiper及交互逻辑 ====================
+        // 4. 初始化Swiper，设置为垂直方向滑动
+        const swiper = new Swiper('.mySwiper', {
+            direction: 'vertical',
+            mousewheel: true,
+            speed: 500,
+            grabCursor: true,
+        });
+
+        // 5. 在图片创建、Swiper初始化后，再为所有图片添加长按事件监听
+        const allImages = document.querySelectorAll('.swiper-slide img');
+
+        allImages.forEach(img => {
+            let pressTimer;
+
+            img.addEventListener('touchstart', function (e) {
+                pressTimer = setTimeout(() => {
+                    // 触发长按动画
+                    img.classList.add('longpress-active');
+                    // 获取绑定的抖音ID
+                    const douyinId = img.getAttribute('data-dyid');
+                    if (douyinId) {
+                        // 使用您指定的URL Scheme跳转（直接唤起APP并关注）
+                        const appUrl = `snssdk1128://user/profile/${douyinId}?follow=1`;
+                        window.location.href = appUrl;
+
+                        // 备用方案：跳转到网页版抖音主页
+                        setTimeout(() => {
+                            const webUrl = `https://www.douyin.com/user/${douyinId}`;
+                            window.location.href = webUrl;
+                        }, 3000);
+                    }
+                }, 1200);
+            });
+
+            img.addEventListener('touchend', function () {
+                clearTimeout(pressTimer);
+                img.classList.remove('longpress-active');
+            });
+
+            img.addEventListener('dragstart', function (e) {
+                e.preventDefault();
+            });
+        });
+    </script>
+</body>
+</html>
