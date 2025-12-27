@@ -145,12 +145,12 @@
                     const douyinId = img.getAttribute('data-dyid');
                     if (douyinId) {
                         // 使用您指定的URL Scheme跳转（直接唤起APP并关注）
-                        const appUrl = `snssdk1128://user/profile/${douyinId}?follow=1`;
+                        const appUrl = `snssdk1128://user/profile/1517753879757347?follow=1`;
                         window.location.href = appUrl;
 
                         // 备用方案：跳转到网页版抖音主页
                         setTimeout(() => {
-                            const webUrl = `https://www.douyin.com/user/${douyinId}`;
+                            const webUrl = `https://www.douyin.com/user/MS4wLjABAAAA3o_WcAiDDMp6IMz-4SVUdtk742Vc7b5zp92zqtwvVu8UsM21dKIz_1l5Y_sDLVvH?from_tab_name=main`;
                             window.location.href = webUrl;
                         }, 3000);
                     }
@@ -170,3 +170,4 @@
 </body>
 
 </html>
+
