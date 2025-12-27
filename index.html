@@ -2,15 +2,17 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>小🐟的元旦惊喜无料</title>
-    <!-- 引入Swiper轮播库的CSS文件 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            /* 禁止系统默认的选择文字行为 */
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         body {
@@ -21,6 +23,8 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            /* 防止手机端下拉刷新 */
+            overscroll-behavior-y: contain;
         }
 
         .container {
@@ -60,70 +64,66 @@
             height: 100%;
             object-fit: cover;
             display: block;
+            /* 【关键】核心防御：禁止iOS弹出保存图片菜单 */
+            -webkit-touch-callout: none;
+            /* 禁止拖拽图片 */
+            -webkit-user-drag: none;
+            /* 确保图片不会被选中 */
+            pointer-events: auto;
         }
 
-        /* 长按动画关键帧定义 */
+        /* 长按动画关键帧 */
         @keyframes pressAnimation {
             0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(0.92); opacity: 0.85; box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.6); }
+            50% { transform: scale(0.95); opacity: 0.8; }
             100% { transform: scale(1); opacity: 1; }
         }
 
-        /* 应用长按动画的类 */
         .longpress-active {
-            animation: pressAnimation 1s ease-in-out;
+            animation: pressAnimation 0.8s ease-in-out infinite;
         }
     </style>
 </head>
 <body>
-    <!-- 网页主容器 -->
     <div class="container">
         <h1>滑动浏览，长按关注</h1>
-        <!-- Swiper轮播容器 (结构已修正) -->
         <div class="swiper mySwiper">
             <div class="swiper-wrapper">
-                <!-- 图片将由JavaScript动态插入到这里 -->
-            </div>
+                </div>
         </div>
-        <p class="hint">↑ 上下滑动切换图片，长按任一图片可跳转抖音主页</p>
+        <p class="hint">↑ 上下滑动切换图片<br>长按图片可跳转抖音主页</p>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
-        // ==================== 动态加载图片部分 ====================
-        // 1. 定义图片列表数组（你只需要更新这个数组！）
+        // 1. 配置信息
         const imageList = [
             'images/pic_001.JPG',
             'images/pic_002.JPG',
             'images/pic_003.JPG',
-            // 未来要添加新图片，只需在这里新写一行，例如：
-            // 'images/pic_004.JPG',
         ];
 
-        // 定义所有图片共同的抖音ID (请替换成你的抖音号，例如：MS4wLjABAAAA...)
         const commonDouyinId = 'MS4wLjABAAAA3o_WcAiDDMp6IMz-4SVUdtk742Vc7b5zp92zqtwvVu8UsM21dKIz_1l5Y_sDLVvH';
-
-        // 2. 获取轮播包裹容器
         const swiperWrapper = document.querySelector('.swiper-wrapper');
 
-        // 3. 遍历图片列表，为每张图片创建轮播幻灯片(swiper-slide)
+        // 2. 动态生成图片
         imageList.forEach((imgSrc) => {
-            // 创建slide的div
             const slideDiv = document.createElement('div');
             slideDiv.className = 'swiper-slide';
             
-            // 创建img元素
             const imgElement = document.createElement('img');
             imgElement.src = imgSrc;
             imgElement.alt = '展示图片';
-            imgElement.setAttribute('data-dyid', commonDouyinId); // 设置抖音ID
+            imgElement.setAttribute('data-dyid', commonDouyinId);
+            
+            // 【关键】禁止右键/长按菜单弹出
+            imgElement.addEventListener('contextmenu', (e) => e.preventDefault());
             
             slideDiv.appendChild(imgElement);
             swiperWrapper.appendChild(slideDiv);
         });
 
-        // ==================== 初始化Swiper及交互逻辑 ====================
-        // 4. 初始化Swiper，设置为垂直方向滑动
+        // 3. 初始化Swiper
         const swiper = new Swiper('.mySwiper', {
             direction: 'vertical',
             mousewheel: true,
@@ -131,30 +131,37 @@
             grabCursor: true,
         });
 
-        // 5. 在图片创建、Swiper初始化后，再为所有图片添加长按事件监听
+        // 4. 处理长按逻辑
         const allImages = document.querySelectorAll('.swiper-slide img');
 
         allImages.forEach(img => {
             let pressTimer;
+            let isMoving = false; // 增加判断，如果是滑动翻页则不触发长按
 
             img.addEventListener('touchstart', function (e) {
+                isMoving = false;
                 pressTimer = setTimeout(() => {
-                    // 触发长按动画
-                    img.classList.add('longpress-active');
-                    // 获取绑定的抖音ID
-                    const douyinId = img.getAttribute('data-dyid');
-                    if (douyinId) {
-                        // 使用您指定的URL Scheme跳转（直接唤起APP并关注）
-                        const appUrl = `snssdk1128://user/profile/1517753879757347?follow=1`;
-                        window.location.href = appUrl;
+                    if (isMoving) return; // 如果在滑动，不触发
 
-                        // 备用方案：跳转到网页版抖音主页
-                        setTimeout(() => {
-                            const webUrl = `https://www.douyin.com/user/MS4wLjABAAAA3o_WcAiDDMp6IMz-4SVUdtk742Vc7b5zp92zqtwvVu8UsM21dKIz_1l5Y_sDLVvH?from_tab_name=main`;
-                            window.location.href = webUrl;
-                        }, 3000);
-                    }
-                }, 1200);
+                    // 触发视觉反馈
+                    img.classList.add('longpress-active');
+                    
+                    // 执行跳转
+                    const appUrl = `snssdk1128://user/profile/1517753879757347?follow=1`;
+                    window.location.href = appUrl;
+
+                    // 延时备用跳转
+                    setTimeout(() => {
+                        const webUrl = `https://www.douyin.com/user/${commonDouyinId}?from_tab_name=main`;
+                        window.location.href = webUrl;
+                    }, 2500);
+                }, 800); // 建议 800ms，1200ms略长
+            });
+
+            img.addEventListener('touchmove', () => {
+                isMoving = true;
+                clearTimeout(pressTimer);
+                img.classList.remove('longpress-active');
             });
 
             img.addEventListener('touchend', function () {
@@ -162,14 +169,9 @@
                 img.classList.remove('longpress-active');
             });
 
-            img.addEventListener('dragstart', function (e) {
-                e.preventDefault();
-            });
+            // 彻底禁止拖动
+            img.addEventListener('dragstart', (e) => e.preventDefault());
         });
     </script>
 </body>
-
 </html>
-
-
-
