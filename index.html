@@ -23,8 +23,8 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
-            /* 防止手机端下拉刷新 */
             overscroll-behavior-y: contain;
+            overflow: hidden;
         }
 
         .container {
@@ -35,25 +35,26 @@
             padding: 30px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             text-align: center;
+            position: relative;
         }
 
         h1 {
             color: #333;
             margin-bottom: 20px;
-            font-size: 1.8rem;
+            font-size: 1.6rem;
         }
 
         .hint {
             color: #666;
             margin-top: 25px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             line-height: 1.5;
         }
 
         /* Swiper轮播样式 */
         .mySwiper {
             width: 100%;
-            height: 60vh;
+            height: 55vh;
             border-radius: 15px;
             overflow: hidden;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
@@ -64,66 +65,130 @@
             height: 100%;
             object-fit: cover;
             display: block;
-            /* 【关键】核心防御：禁止iOS弹出保存图片菜单 */
+            /* 禁止iOS弹出保存图片菜单 */
             -webkit-touch-callout: none;
-            /* 禁止拖拽图片 */
             -webkit-user-drag: none;
-            /* 确保图片不会被选中 */
             pointer-events: auto;
         }
 
-        /* 长按动画关键帧 */
-        @keyframes pressAnimation {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(0.95); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
+        /* 音乐控制按钮样式 */
+        #music-control {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            z-index: 1000;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #music-icon {
+            font-size: 20px;
+        }
+
+        /* 旋转动画 */
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .rotating {
+            animation: rotate 3s linear infinite;
+        }
+
+        /* 长按反馈动画 */
+        @keyframes pressScale {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.96); opacity: 0.8; }
+            100% { transform: scale(1); }
         }
 
         .longpress-active {
-            animation: pressAnimation 0.8s ease-in-out infinite;
+            animation: pressScale 0.8s ease-in-out infinite;
         }
     </style>
 </head>
 <body>
+
+    <div id="music-control" class="rotating">
+        <span id="music-icon">🎶</span>
+    </div>
+
+    <audio id="bg-music" loop></audio>
+
     <div class="container">
         <h1>滑动浏览，长按关注</h1>
         <div class="swiper mySwiper">
             <div class="swiper-wrapper">
                 </div>
         </div>
-        <p class="hint">↑ 上下滑动切换图片<br>长按图片可跳转抖音主页</p>
+        <p class="hint">↑ 上下滑动切换图片<br>长按任一图片跳转抖音主页</p>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script>
-        // 1. 配置信息
+        // ==================== 1. 配置区域 ====================
         const imageList = [
             'images/pic_001.JPG',
             'images/pic_002.JPG',
             'images/pic_003.JPG',
         ];
-
+        const musicFiles = ['music_1.mp3', 'music_2.mp3'];
         const commonDouyinId = 'MS4wLjABAAAA3o_WcAiDDMp6IMz-4SVUdtk742Vc7b5zp92zqtwvVu8UsM21dKIz_1l5Y_sDLVvH';
+        
+        // ==================== 2. 音乐播放逻辑 ====================
+        const audio = document.getElementById('bg-music');
+        const musicBtn = document.getElementById('music-control');
+        
+        // 随机选歌
+        audio.src = musicFiles[Math.floor(Math.random() * musicFiles.length)];
+
+        function toggleMusic() {
+            if (audio.paused) {
+                audio.play();
+                musicBtn.classList.add('rotating');
+            } else {
+                audio.pause();
+                musicBtn.classList.remove('rotating');
+            }
+        }
+
+        musicBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMusic();
+        });
+
+        // 自动播放补偿（用户第一次触摸页面即播放）
+        const initAudio = () => {
+            audio.play().then(() => {
+                musicBtn.classList.add('rotating');
+            }).catch(() => {});
+            document.removeEventListener('touchstart', initAudio);
+        };
+        document.addEventListener('touchstart', initAudio);
+
+        // ==================== 3. 图片加载与Swiper ====================
         const swiperWrapper = document.querySelector('.swiper-wrapper');
 
-        // 2. 动态生成图片
         imageList.forEach((imgSrc) => {
             const slideDiv = document.createElement('div');
             slideDiv.className = 'swiper-slide';
-            
             const imgElement = document.createElement('img');
             imgElement.src = imgSrc;
-            imgElement.alt = '展示图片';
-            imgElement.setAttribute('data-dyid', commonDouyinId);
-            
-            // 【关键】禁止右键/长按菜单弹出
-            imgElement.addEventListener('contextmenu', (e) => e.preventDefault());
-            
+            // 禁止系统菜单
+            imgElement.addEventListener('contextmenu', e => e.preventDefault());
             slideDiv.appendChild(imgElement);
             swiperWrapper.appendChild(slideDiv);
         });
 
-        // 3. 初始化Swiper
         const swiper = new Swiper('.mySwiper', {
             direction: 'vertical',
             mousewheel: true,
@@ -131,31 +196,28 @@
             grabCursor: true,
         });
 
-        // 4. 处理长按逻辑
+        // ==================== 4. 长按跳转逻辑 ====================
         const allImages = document.querySelectorAll('.swiper-slide img');
 
         allImages.forEach(img => {
             let pressTimer;
-            let isMoving = false; // 增加判断，如果是滑动翻页则不触发长按
+            let isMoving = false;
 
-            img.addEventListener('touchstart', function (e) {
+            img.addEventListener('touchstart', (e) => {
                 isMoving = false;
                 pressTimer = setTimeout(() => {
-                    if (isMoving) return; // 如果在滑动，不触发
-
-                    // 触发视觉反馈
+                    if (isMoving) return;
                     img.classList.add('longpress-active');
                     
-                    // 执行跳转
+                    // 跳转链接
                     const appUrl = `snssdk1128://user/profile/1517753879757347?follow=1`;
                     window.location.href = appUrl;
 
-                    // 延时备用跳转
+                    // 备用网页跳转
                     setTimeout(() => {
-                        const webUrl = `https://www.douyin.com/user/${commonDouyinId}?from_tab_name=main`;
-                        window.location.href = webUrl;
+                        window.location.href = `https://www.douyin.com/user/${commonDouyinId}`;
                     }, 2500);
-                }, 800); // 建议 800ms，1200ms略长
+                }, 800); 
             });
 
             img.addEventListener('touchmove', () => {
@@ -164,13 +226,10 @@
                 img.classList.remove('longpress-active');
             });
 
-            img.addEventListener('touchend', function () {
+            img.addEventListener('touchend', () => {
                 clearTimeout(pressTimer);
                 img.classList.remove('longpress-active');
             });
-
-            // 彻底禁止拖动
-            img.addEventListener('dragstart', (e) => e.preventDefault());
         });
     </script>
 </body>
